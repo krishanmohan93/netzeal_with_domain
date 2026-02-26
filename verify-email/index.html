@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify Email - NetZeal</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f6f8; margin:0; }
+    .card { max-width: 520px; margin: 64px auto; background:#fff; padding:24px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
+    h1 { margin:0 0 10px; font-size:24px; }
+    p { color:#555; line-height:1.5; }
+    .status { margin-top:16px; padding:12px; border-radius:8px; font-weight:600; display:none; }
+    .ok { background:#e8f7ee; color:#116437; display:block; }
+    .err { background:#fdecec; color:#8a1f1f; display:block; }
+    .muted { color:#777; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Verify your email</h1>
+    <p>We are verifying your NetZeal account. Please wait...</p>
+    <div id="status" class="status">Processing...</div>
+    <p class="muted">If this fails, request a new verification email from the app.</p>
+  </div>
+
+  <script src="/config.js"></script>
+  <script>
+    const API_BASE_URL = (window.ENV && window.ENV.API_BASE_URL) ? window.ENV.API_BASE_URL : 'https://api.netzeal.com/api/v1';
+
+    function setStatus(message, ok) {
+      const box = document.getElementById('status');
+      box.textContent = message;
+      box.className = 'status ' + (ok ? 'ok' : 'err');
+      box.style.display = 'block';
+    }
+
+    async function verify() {
+      const token = new URLSearchParams(window.location.search).get('token');
+      if (!token) {
+        setStatus('Invalid link: token is missing.', false);
+        return;
+      }
+
+      setStatus('Processing...', true);
+      
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.detail || 'Verification failed.');
+        }
+
+        setStatus(data.message || 'Email verified successfully. You can now return to the app.', true);
+      } catch (err) {
+        setStatus(err.message || 'Verification failed.', false);
+      }
+    }
+
+    verify();
+  </script>
+</body>
+</html>
